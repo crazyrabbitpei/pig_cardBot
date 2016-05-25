@@ -58,6 +58,7 @@ function crawler(forum_cnt,setting,url,latestTime)
             var info = JSON.parse(body);
             if(typeof info==="undefined"||info.length==0){
                 console.log("===Next Forum==");
+                retry_cnt=0;
                 forum_cnt++;
                 run.restart(setting,forum_cnt);
             }
@@ -77,8 +78,8 @@ function crawler(forum_cnt,setting,url,latestTime)
                 if(code>=500&&code<=599){
                     retry_cnt++;
                     if(retry_cnt>setting.retryLimit){
-                        console.log("Over retry limit:"+retry_limit);
-                        var msg = "Over retry limit:"+retry_limit;
+                        console.log("Over retry limit:"+retry_cnt);
+                        var msg = "Over retry limit:"+retry_cnt;
                         writeLog(setting,msg,'retry limit');
                     }
                     else{
@@ -100,8 +101,8 @@ function crawler(forum_cnt,setting,url,latestTime)
                     
                     retry_cnt++;
                     if(retry_cnt>setting.retryLimit){
-                        console.log("Over retry limit:"+retry_limit);
-                        var msg = "Over retry limit:"+retry_limit;
+                        console.log("Over retry limit:"+retry_cnt);
+                        var msg = "Over retry limit:"+retry_cnt;
                         writeLog(setting,msg,'retry limit');
                     }
                     else{
@@ -117,8 +118,8 @@ function crawler(forum_cnt,setting,url,latestTime)
                 writeLog(setting,err,'error');
                 retry_cnt++;
                 if(retry_cnt>setting.retryLimit){
-                    console.log("Over retry limit:"+retry_limit);
-                    var msg = "Over retry limit:"+retry_limit;
+                    console.log("Over retry limit:"+retry_cnt);
+                    var msg = "Over retry limit:"+retry_cnt;
                     writeLog(setting,msg,'retry limit');
                 }
                 else{
@@ -214,8 +215,8 @@ function fetchPostContent(forum_cnt,setting,post_id,totalp,next_url,latestTime)
                 if(code>=500&&code<=599){
                     retry_cnt++;
                     if(retry_cnt>setting.retryLimit){
-                        console.log("Over retry limit:"+retry_limit);
-                        var msg = "Over retry limit:"+retry_limit;
+                        console.log("Over retry limit:"+retry_cnt);
+                        var msg = "Over retry limit:"+retry_cnt;
                         writeLog(setting,msg,'retry limit');
                     }
                     else{
@@ -243,8 +244,8 @@ function fetchPostContent(forum_cnt,setting,post_id,totalp,next_url,latestTime)
                     
                     retry_cnt++;
                     if(retry_cnt>setting.retryLimit){
-                        console.log("Over retry limit:"+retry_limit);
-                        var msg = "Over retry limit:"+retry_limit;
+                        console.log("Over retry limit:"+retry_cnt);
+                        var msg = "Over retry limit:"+retry_cnt;
                         writeLog(setting,msg,'retry limit');
                     }
                     else{
@@ -260,8 +261,8 @@ function fetchPostContent(forum_cnt,setting,post_id,totalp,next_url,latestTime)
                 writeLog(setting,err,'error');
                 retry_cnt++;
                 if(retry_cnt>setting.retryLimit){
-                    console.log("Over retry limit:"+retry_limit);
-                    var msg = "Over retry limit:"+retry_limit;
+                    console.log("Over retry limit:"+retry_cnt);
+                    var msg = "Over retry limit:"+retry_cnt;
                     writeLog(setting,msg,'retry limit');
                 }
                 else{
@@ -321,8 +322,8 @@ function fetchPostComment(forum_cnt,setting,post_id,totalp,next_url,latestTime,c
                 if(code>=500&&code<=599){
                     retry_cnt++;
                     if(retry_cnt>setting.retryLimit){
-                        console.log("Over retry limit:"+retry_limit);
-                        var msg = "Over retry limit:"+retry_limit;
+                        console.log("Over retry limit:"+retry_cnt);
+                        var msg = "Over retry limit:"+retry_cnt;
                         writeLog(setting,msg,'retry limit');
                     }
                     else{
@@ -350,8 +351,8 @@ function fetchPostComment(forum_cnt,setting,post_id,totalp,next_url,latestTime,c
 
                     retry_cnt++;
                     if(retry_cnt>setting.retryLimit){
-                        console.log("Over retry limit:"+retry_limit);
-                        var msg = "Over retry limit:"+retry_limit;
+                        console.log("Over retry limit:"+retry_cnt);
+                        var msg = "Over retry limit:"+retry_cnt;
                         writeLog(setting,msg,'retry limit');
                     }
                     else{
@@ -367,8 +368,8 @@ function fetchPostComment(forum_cnt,setting,post_id,totalp,next_url,latestTime,c
                 writeLog(setting,err,'error');
                 retry_cnt++;
                 if(retry_cnt>setting.retryLimit){
-                    console.log("Over retry limit:"+retry_limit);
-                    var msg = "Over retry limit:"+retry_limit;
+                    console.log("Over retry limit:"+retry_cnt);
+                    var msg = "Over retry limit:"+retry_cnt;
                     writeLog(setting,msg,'retry limit');
                 }
                 else{

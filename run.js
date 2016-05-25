@@ -11,6 +11,7 @@ var newtime;
 var crawledId = new HashMap();
 
 var config_name="./config/setting.json";
+var flag=0;
 
 readConfig(config_name,start);
 
@@ -24,7 +25,7 @@ function readConfig(filename,runCrawler)
         readForums(setting.catagory_list,()=>{
             readDate(setting.forums_manage,()=>{
                 readCrawledID(setting.id_manage,()=>{
-                    var forum_cnt=0;
+                    var forum_cnt=5;
                     exports.newtime = newtime;
                     exports.crawledId = crawledId;
 
@@ -93,7 +94,16 @@ function start(setting,forum_cnt)
     }
 
     var latestTime = latestDate.get(forumList[forum_cnt]);
-    var url = setting.target+'/'+forumList[forum_cnt]+'/posts?popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
+    //if(flag!=0){
+        var url = setting.target+'/'+forumList[forum_cnt]+'/posts?popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
+    //}
+    /*
+    else{
+        flag=1;
+        var url = 'https://www.dcard.tw/_api/forums/bg/posts?before=116204&popular=false&limit=25';
+        latestTime=0;
+    }
+    */
     //console.log(forumList[forum_cnt]+":"+latestTime);
     if(typeof latestTime==="undefined"){
         latestTime=0;
