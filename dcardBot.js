@@ -1,16 +1,30 @@
 'use strict'
 var request = require('request');
+var HashMap = require('hashmap');
+var run = require('./run.js');
 var fs = require('fs');
 var dateFormat = require('dateformat');
 var retry_cnt=0;
 var current_links_content = 0;
 var current_links_comment = 0;
-var newtime=0;
-
+//var newtime=0;
+var newtime = new HashMap();
 var test_cnt=0;
 
+var tag = setInterval(function(){
+    console.log("--write to forums.list--");
+    var rec = "";
+    newtime.forEach(function(value,key){
+        //console.log(key+','+value);
+        rec +=key+','+value+'\n';
 
-function crawler(setting,url,latestTime)
+    });
+    fs.writeFile('./id_manage/forums.list',rec);
+},5*1000);
+
+
+
+function crawler(forum_cnt,setting,url,latestTime)
 {
     /*
     if(test_cnt==3){
@@ -32,14 +46,20 @@ function crawler(setting,url,latestTime)
     },function(err,rep,body){
         if(!err&&rep.statusCode==200){
             var info = JSON.parse(body);
-            var len = info.length;
-            var next_id = info[len-1].id;
-            var next_url = base_url+'?before='+next_id+'&popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
-            
-            updateTime(setting,info[0].createdAt,latestTime);
-
-            //console.log('next:'+next_url);
-            fetchPostId(setting,info,fetchPostContent,fetchPostComment,next_url,latestTime);
+            if(typeof info==="undefined"||info.length==0){
+                console.log("===Next Forum==");
+                forum_cnt++;
+                run.restart(setting,forum_cnt);
+            }
+            else{
+                var len = info.length;
+                var next_id = info[len-1].id;
+                var forum_name = url.match(/forums\/(.*)\/post/);
+                var next_url = base_url+'/'+forum_name[1]+'/posts?before='+next_id+'&popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
+                //console.log('next:'+next_url);
+                updateTime(setting,info[0].createdAt,latestTime,forum_name[1]);
+                fetchPostId(forum_cnt,setting,info,fetchPostContent,fetchPostComment,next_url,latestTime);
+            }
         }
         else{
             if(rep){
@@ -55,7 +75,7 @@ function crawler(setting,url,latestTime)
                         console.log('['+url+'] retry crawler:'+code);
                         test_cnt--;
                         setTimeout(function(){
-                            crawler(setting,url,latestTime);
+                            crawler(forum_cnt,setting,url,latestTime);
                         },setting.againTime*1000);
                     }
                 }
@@ -81,7 +101,7 @@ function crawler(setting,url,latestTime)
                 else{
                     console.log('['+url+'] retry crawler:'+code);
                     setTimeout(function(){
-                        crawler(setting,url,latestTime);
+                        crawler(forum_cnt,setting,url,latestTime);
                     },setting.againTime*1000);
                 }
             }
@@ -91,7 +111,7 @@ function crawler(setting,url,latestTime)
 }
 
 
-function fetchPostId(setting,info,getContentbyId,getCommentbyId,next_url,latestTime)
+function fetchPostId(forum_cnt,setting,info,getContentbyId,getCommentbyId,next_url,latestTime)
 {
     var len = info.length;
     var req_num = parseInt(setting.perComment_limit);
@@ -112,25 +132,25 @@ function fetchPostId(setting,info,getContentbyId,getCommentbyId,next_url,latestT
                 break;
             }
             else{
-                console.log("current_time:"+current_time+" latest_time:"+latest_time);
-                getContentbyId(setting,info[i].id,len,next_url,latestTime);
-                getCommentbyId(setting,info[i].id,len,next_url,latestTime,info[i].commentCount,req_num,0);
+                //console.log("current_time:"+current_time+" latest_time:"+latest_time);
+                getContentbyId(forum_cnt,setting,info[i].id,len,next_url,latestTime);
+                getCommentbyId(forum_cnt,setting,info[i].id,len,next_url,latestTime,info[i].commentCount,req_num,0);
                 fs.appendFile(setting.id_manage,info[i].id+","+info[i].commentCount+","+info[i].likeCount+"\n");
             }
         }
         else{
             current_time = new Date(info[i].createdAt);
             latest_time = new Date(latestTime);
-            console.log("current_time:"+current_time+" latest_time:"+latest_time);
-            getContentbyId(setting,info[i].id,len,next_url,latestTime);
-            getCommentbyId(setting,info[i].id,len,next_url,latestTime,info[i].commentCount,req_num,0);
+            //console.log("current_time:"+current_time+" latest_time:"+latest_time);
+            getContentbyId(forum_cnt,setting,info[i].id,len,next_url,latestTime);
+            getCommentbyId(forum_cnt,setting,info[i].id,len,next_url,latestTime,info[i].commentCount,req_num,0);
             fs.appendFile(setting.id_manage,info[i].id+","+info[i].commentCount+","+info[i].likeCount+"\n");
         }
     }
 }
-function fetchPostContent(setting,post_id,totalp,next_url,latestTime)
+function fetchPostContent(forum_cnt,setting,post_id,totalp,next_url,latestTime)
 {
-    var base_url = setting.target;
+    var base_url = setting.article_target;
     var url = base_url+'/'+post_id;
     //console.log('Processing:'+url);
     request({
@@ -145,9 +165,9 @@ function fetchPostContent(setting,post_id,totalp,next_url,latestTime)
             var content = JSON.parse(body);
             //console.log('['+post_id+']title:'+content.title);
             convert2gais(setting,post_id,content,'content');
-            
+            console.log("current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
             if(current_links_content==0&&current_links_comment==0){
-                crawler(setting,next_url,latestTime);
+                crawler(forum_cnt,setting,next_url,latestTime);
                 //console.log('next range...:'+next_url);
             }
         }
@@ -164,7 +184,7 @@ function fetchPostContent(setting,post_id,totalp,next_url,latestTime)
                     else{
                         console.log('['+post_id+'] retry crawler:'+code);
                         setTimeout(function(){
-                            fetchPostContent(setting,post_id,totalp,next_url,latestTime);
+                            fetchPostContent(forum_cnt,setting,post_id,totalp,next_url,latestTime);
                         },setting.againTime*1000);
                     }
                 }
@@ -174,8 +194,9 @@ function fetchPostContent(setting,post_id,totalp,next_url,latestTime)
                     var msg = 'Can\'t find the post_id:'+post_id;
                     writeLog(setting,msg,'404');
                     
+                    console.log("current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
                     if(current_links_content==0&&current_links_comment==0){
-                        crawler(setting,next_url,latestTime);
+                        crawler(forum_cnt,setting,next_url,latestTime);
                         //console.log('next range...:'+next_url);
                     }
                 }
@@ -196,7 +217,7 @@ function fetchPostContent(setting,post_id,totalp,next_url,latestTime)
                 else{
                     console.log('['+post_id+'] retry crawler:'+code);
                     setTimeout(function(){
-                        fetchPostContent(setting,post_id,totalp,next_url,latestTime);
+                        fetchPostContent(forum_cnt,setting,post_id,totalp,next_url,latestTime);
                     },setting.againTime*1000);
                 }
             }
@@ -204,9 +225,9 @@ function fetchPostContent(setting,post_id,totalp,next_url,latestTime)
         }
     });
 }
-function fetchPostComment(setting,post_id,totalp,next_url,latestTime,comment_len,req_num,after)
+function fetchPostComment(forum_cnt,setting,post_id,totalp,next_url,latestTime,comment_len,req_num,after)
 {
-    var base_url = setting.target;
+    var base_url = setting.article_target;
     var url = base_url+'/'+post_id+'/comments?limit='+req_num+"&after="+after;
     //console.log('Processing:'+url);
     request({
@@ -225,17 +246,21 @@ function fetchPostComment(setting,post_id,totalp,next_url,latestTime,comment_len
                 convert2gais(setting,post_id,content[i],'comment');
             }
 
+            console.log("0.current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
+            console.log("content.length:"+content.length+" comment_len:"+comment_len);
             if(content.length==0||comment_len<0){
                 current_links_comment--;
                 if(current_links_content==0&&current_links_comment==0){
-                    crawler(setting,next_url,latestTime);
-
+                    crawler(forum_cnt,setting,next_url,latestTime);
                     //console.log('next range...:'+next_url);
                 }
             }
-            else if(comment_len>0){
+            else if(comment_len>0||content.length!=0){
                 var next_after=after+req_num;
-                fetchPostComment(setting,post_id,totalp,next_url,latestTime,comment_len,req_num,next_after)   
+                fetchPostComment(forum_cnt,setting,post_id,totalp,next_url,latestTime,comment_len,req_num,next_after)   
+            }
+            else{
+                console.log("content.length:"+content.length+" comment_len:"+comment_len);
             }
 
         }
@@ -252,7 +277,7 @@ function fetchPostComment(setting,post_id,totalp,next_url,latestTime,comment_len
                     else{
                         console.log('['+post_id+'] retry crawler:'+code);
                         setTimeout(function(){
-                            fetchPostComment(setting,post_id,totalp,next_url,latestTime,comment_len,req_num,after)   
+                            fetchPostComment(forum_cnt,setting,post_id,totalp,next_url,latestTime,comment_len,req_num,after)   
                         },setting.againTime*1000);
                     }
                 }
@@ -262,9 +287,10 @@ function fetchPostComment(setting,post_id,totalp,next_url,latestTime,comment_len
                     var msg = 'Can\'t find the post_id:'+post_id;
                     writeLog(setting,msg,'404');
                     
+                    console.log("1.current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
                     if(current_links_content==0&&current_links_comment==0){
                         //console.log('next range...:'+next_url);
-                        crawler(setting,next_url,latestTime);
+                        crawler(forum_cnt,setting,next_url,latestTime);
                     }
                 }
                 else{
@@ -284,7 +310,7 @@ function fetchPostComment(setting,post_id,totalp,next_url,latestTime,comment_len
                 else{
                     console.log('['+post_id+'] retry crawler:'+code);
                     setTimeout(function(){
-                        fetchPostComment(setting,post_id,totalp,next_url,latestTime,comment_len,req_num,after)   
+                        fetchPostComment(forum_cnt,setting,post_id,totalp,next_url,latestTime,comment_len,req_num,after)   
                     },setting.againTime*1000);
                 }
             }
@@ -299,24 +325,24 @@ exports.fetchPostId=fetchPostId;
 exports.fetchPostContent=fetchPostContent;
 exports.fetchPostComment=fetchPostComment;
 
-function updateTime(setting,time,latestTime)
+function updateTime(setting,time,latestTime,forum_name)
 {
 
-    if(newtime==0&&latestTime==0){
-        newtime=time;
+    if(typeof newtime.get(forum_name)==="undefined"&&latestTime==0){
+        newtime.set(forum_name,time);
         console.log('Update time=>'+time);
-        fs.writeFile(setting.latestTime,time);
+        //fs.writeFile(setting.latestTime,time);
     }
-    else if(newtime==0&&latestTime!=0){
-        newtime=latestTime;
+    else if(typeof newtime.get(forum_name)==="undefined"&&latestTime!=0){
+        newtime.set(forum_name,latestTime);
     }
 
-    var current_new=new Date(newtime);
+    var current_new=new Date(newtime.get(forum_name));
     var compare_time=new Date(time)
     if(current_new.getTime()<compare_time.getTime()){
-        newtime=time;
+        newtime.set(forum_name,time);
         console.log('Update time=>'+time);
-        fs.writeFile(setting.latestTime,time);
+        //fs.writeFile(setting.latestTime,time);
     }
 }
 
