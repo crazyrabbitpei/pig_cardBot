@@ -6,11 +6,14 @@ var LineByLineReader = require('line-by-line');
 
 var forumList = new Array();
 var latestDate = new HashMap();
+var newtime;
 
+var crawledId = new HashMap();
 
 var config_name="./config/setting.json";
 
 readConfig(config_name,start);
+
 
 
 function readConfig(filename,runCrawler)
@@ -20,8 +23,13 @@ function readConfig(filename,runCrawler)
         var setting = JSON.parse(data);
         readForums(setting.catagory_list,()=>{
             readDate(setting.forums_manage,()=>{
-                var forum_cnt=0;
-                runCrawler(setting,forum_cnt);
+                readCrawledID(setting.id_manage,()=>{
+                    var forum_cnt=0;
+                    exports.newtime = newtime;
+                    exports.crawledId = crawledId;
+
+                    runCrawler(setting,forum_cnt);
+                });
             });
         });
     })
@@ -43,6 +51,7 @@ function readForums(filename,fin)
 }
 function readDate(filename,fin)
 {
+    var rec ="";
     var lr = new LineByLineReader(filename);
     lr.on('error',(err)=>{
        console.log(err); 
@@ -51,10 +60,28 @@ function readDate(filename,fin)
         var data = line.split(",");
         console.log("key:"+data[0]+" value:"+data[1]);
         latestDate.set(data[0],data[1]);
-        fs.appedFile('./id_manage/backup_forums.list',data[0]+','+data[1]+'\n');
+        rec +=data[0]+','+data[1]+'\n';
+
     });
     lr.on('end',()=>{
         console.log("Forum latest date read done");
+        fs.writeFile('./id_manage/backup_forums.list',rec);
+        newtime = latestDate.clone();
+        fin();
+    });
+}
+function readCrawledID(filename,fin)
+{
+    var lr = new LineByLineReader(filename);
+    lr.on('error',(err)=>{
+       console.log(err); 
+    });
+    lr.on('line',(line)=>{
+        var data = line.split(",");
+        crawledId.set(data[0],1);
+    });
+    lr.on('end',()=>{
+        console.log("Crawled id list read done");
         fin();
     });
 }
