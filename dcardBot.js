@@ -7,34 +7,34 @@ var dateFormat = require('dateformat');
 var retry_cnt=0;
 var current_links_content = 0;
 var current_links_comment = 0;
-//var newtime=0;
-//var newtime = new HashMap();
 var test_cnt=0;
+var next_forum=0;
 
-var crawledId;
+var currentDate;
 var newtime;
 
-
 var tag = setInterval(function(){
-    console.log("--write to forums.list--");
+    
     var rec = "";
-    crawledId = run.crawledId;
-    newtime  = run.newtime;
-    newtime.forEach(function(value,key){
-        //console.log('newtime:'+key+','+value);
-        rec +=key+','+value+'\n';
+    if(typeof newtime!=="undefined"){
+        console.log("--write to forums.list--");
+        newtime.forEach(function(value,key){
+            //console.log('currentDate:'+key+','+value);
+            rec +=key+','+value+'\n';
 
-    });
-    if(rec!=""){
-        fs.writeFile('./id_manage/forums.list',rec);
+        });
+        if(rec!=""){
+            fs.writeFile('./id_manage/forums.list',rec);
+        }
     }
-},5*1000);
+},10*1000);
 
 
 
 function crawler(forum_cnt,setting,url,latestTime)
 {
-    crawledId = run.crawledId;
+    var base_url = setting.target;
+    test_cnt++;
     newtime  = run.newtime;
     /*
     if(test_cnt==3){
@@ -42,40 +42,87 @@ function crawler(forum_cnt,setting,url,latestTime)
         return;
     }
     */
-    var base_url = setting.target;
-    test_cnt++;
 
-    console.log("Start crawler:"+url);
+    if(next_forum==1){
+        next_forum=0;
+        console.log("===Next Forum==");
+        retry_cnt=0;
+        forum_cnt++;
+        run.restart(setting,forum_cnt);
+        return;
+    }
 
-    request({
-        url:url,
-        header:{
-            'User-Agent':'dcardBot_demo/1.0'
-        },
-        timeout:60*1000
-    },function(err,rep,body){
-        if(!err&&rep.statusCode==200){
-            var info = JSON.parse(body);
-            if(typeof info==="undefined"||info.length==0){
-                console.log("===Next Forum==");
-                retry_cnt=0;
-                forum_cnt++;
-                run.restart(setting,forum_cnt);
+    else{
+        console.log("Start crawler:"+url);
+        request({
+            url:url,
+            header:{
+                'User-Agent':'dcardBot_demo/1.0'
+            },
+            timeout:60*1000
+        },function(err,rep,body){
+            if(!err&&rep.statusCode==200){
+                var info = JSON.parse(body);
+                if(typeof info==="undefined"||info.length==0){
+                    console.log("===Next Forum==");
+                    retry_cnt=0;
+                    forum_cnt++;
+                    run.restart(setting,forum_cnt);
+                }
+                else{
+                    var len = info.length;
+                    var next_id = info[len-1].id;
+                    var forum_name = url.match(/forums\/(.*)\/post/);
+                    var next_url = base_url+'/'+forum_name[1]+'/posts?before='+next_id+'&popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
+                    //console.log('next:'+next_url);
+                    updateTime(setting,info[0].createdAt,latestTime,forum_name[1]);
+                    fetchPostId(forum_cnt,setting,info,fetchPostContent,fetchPostComment,next_url,latestTime);
+                }
             }
             else{
-                var len = info.length;
-                var next_id = info[len-1].id;
-                var forum_name = url.match(/forums\/(.*)\/post/);
-                var next_url = base_url+'/'+forum_name[1]+'/posts?before='+next_id+'&popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
-                //console.log('next:'+next_url);
-                updateTime(setting,info[0].createdAt,latestTime,forum_name[1]);
-                fetchPostId(forum_cnt,setting,info,fetchPostContent,fetchPostComment,next_url,latestTime);
-            }
-        }
-        else{
-            if(rep){
-                var code = rep.statusCode;
-                if(code>=500&&code<=599){
+                if(rep){
+                    var code = rep.statusCode;
+                    if(code>=500&&code<=599){
+                        retry_cnt++;
+                        if(retry_cnt>setting.retryLimit){
+                            console.log("Over retry limit:"+retry_cnt);
+                            var msg = "Over retry limit:"+retry_cnt;
+                            writeLog(setting,msg,'retry limit');
+                        }
+                        else{
+                            console.log('['+url+'] retry crawler:'+code);
+                            test_cnt--;
+                            setTimeout(function(){
+                                crawler(forum_cnt,setting,url,latestTime);
+                            },setting.againTime*1000);
+                        }
+                    }
+                    else if(code==404){
+                        console.log('[404]');
+                        var msg = 'Can\'t find the website.';
+                        writeLog(setting,msg,'404');
+                    }
+                    else{
+                        console.log('['+code+']');   
+                        writeLog(setting,JSON.stringify(rep,null,3),'error');
+
+                        retry_cnt++;
+                        if(retry_cnt>setting.retryLimit){
+                            console.log("Over retry limit:"+retry_cnt);
+                            var msg = "Over retry limit:"+retry_cnt;
+                            writeLog(setting,msg,'retry limit');
+                        }
+                        else{
+                            console.log('['+url+'] retry crawler:'+code);
+                            setTimeout(function(){
+                                crawler(forum_cnt,setting,url,latestTime);
+                            },setting.againTime*1000);
+                        }
+                    }
+                }
+                else{
+                    console.log(err);
+                    writeLog(setting,err,'error');
                     retry_cnt++;
                     if(retry_cnt>setting.retryLimit){
                         console.log("Over retry limit:"+retry_cnt);
@@ -83,63 +130,23 @@ function crawler(forum_cnt,setting,url,latestTime)
                         writeLog(setting,msg,'retry limit');
                     }
                     else{
-                        console.log('['+url+'] retry crawler:'+code);
-                        test_cnt--;
+                        console.log('['+url+'] retry crawler');
                         setTimeout(function(){
                             crawler(forum_cnt,setting,url,latestTime);
                         },setting.againTime*1000);
                     }
                 }
-                else if(code==404){
-                    console.log('[404]');
-                    var msg = 'Can\'t find the website.';
-                    writeLog(setting,msg,'404');
-                }
-                else{
-                    console.log('['+code+']');   
-                    writeLog(setting,JSON.stringify(rep,null,3),'error');
-                    
-                    retry_cnt++;
-                    if(retry_cnt>setting.retryLimit){
-                        console.log("Over retry limit:"+retry_cnt);
-                        var msg = "Over retry limit:"+retry_cnt;
-                        writeLog(setting,msg,'retry limit');
-                    }
-                    else{
-                        console.log('['+url+'] retry crawler:'+code);
-                        setTimeout(function(){
-                            crawler(forum_cnt,setting,url,latestTime);
-                        },setting.againTime*1000);
-                    }
-                }
-            }
-            else{
-                console.log(err);
-                writeLog(setting,err,'error');
-                retry_cnt++;
-                if(retry_cnt>setting.retryLimit){
-                    console.log("Over retry limit:"+retry_cnt);
-                    var msg = "Over retry limit:"+retry_cnt;
-                    writeLog(setting,msg,'retry limit');
-                }
-                else{
-                    console.log('['+url+'] retry crawler');
-                    setTimeout(function(){
-                        crawler(forum_cnt,setting,url,latestTime);
-                    },setting.againTime*1000);
-                }
-            }
 
-        }
-    });
+            }
+        });
+    }
+    
+
 }
 
 
 function fetchPostId(forum_cnt,setting,info,getContentbyId,getCommentbyId,next_url,latestTime)
 {
-
-    crawledId = run.crawledId;
-    newtime  = run.newtime;
 
     var len = info.length;
     var req_num = parseInt(setting.perComment_limit);
@@ -148,6 +155,13 @@ function fetchPostId(forum_cnt,setting,info,getContentbyId,getCommentbyId,next_u
     var latest_time,current_time;
     current_links_content = len;
     current_links_comment = len;
+    if(len==0){
+        if(current_links_content==0&&current_links_comment==0){
+            next_forum=1;
+            crawler(forum_cnt,setting,next_url,latestTime);
+        }
+        return;
+    }
     for(i=0;i<len;i++){
         if(latestTime!=0){
             current_time = new Date(info[i].createdAt);
@@ -155,8 +169,12 @@ function fetchPostId(forum_cnt,setting,info,getContentbyId,getCommentbyId,next_u
 
             if(current_time.getTime()<=latest_time.getTime()){
                 current_links_content = current_links_content-(len-i);
-                current_links_comment = current_links_content-(len-i);
+                current_links_comment = current_links_comment-(len-i);
                 console.log(current_time+"--reach end--"+latest_time);
+                if(current_links_content==0&&current_links_comment==0){
+                    next_forum=1;
+                    crawler(forum_cnt,setting,next_url,latestTime);
+                }
                 break;
             }
             else{
@@ -392,8 +410,6 @@ exports.fetchPostComment=fetchPostComment;
 
 function updateTime(setting,time,latestTime,forum_name)
 {
-    newtime = run.newtime;
-
     if(typeof newtime.get(forum_name)==="undefined"&&latestTime==0){
         newtime.set(forum_name,time);
         console.log('Update time=>'+time);

@@ -24,13 +24,12 @@ function readConfig(filename,runCrawler)
         var setting = JSON.parse(data);
         readForums(setting.catagory_list,()=>{
             readDate(setting.forums_manage,()=>{
-                readCrawledID(setting.id_manage,()=>{
-                    var forum_cnt=5;
+                //readCrawledID(setting.id_manage,()=>{
+                    var forum_cnt=0;
                     exports.newtime = newtime;
-                    exports.crawledId = crawledId;
-
+                    //exports.crawledId = crawledId;
                     runCrawler(setting,forum_cnt);
-                });
+                //});
             });
         });
     })
@@ -88,27 +87,28 @@ function readCrawledID(filename,fin)
 }
 function start(setting,forum_cnt)
 {
-    if(typeof forumList[forum_cnt]==="undefined"){
-        console.log("--All forums done--");
-        return;
-    }
-
-    var latestTime = latestDate.get(forumList[forum_cnt]);
-    //if(flag!=0){
-        var url = setting.target+'/'+forumList[forum_cnt]+'/posts?popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
-    //}
-    /*
-    else{
-        flag=1;
-        var url = 'https://www.dcard.tw/_api/forums/bg/posts?before=116204&popular=false&limit=25';
-        latestTime=0;
-    }
-    */
     //console.log(forumList[forum_cnt]+":"+latestTime);
     if(typeof latestTime==="undefined"){
         latestTime=0;
     }
-    dcardBot.crawler(forum_cnt,setting,url,latestTime,start);
+
+    if(typeof forumList[forum_cnt]==="undefined"){
+        console.log("--All forums done--");
+        forum_cnt=0;
+        var latestTime = latestDate.get(forumList[forum_cnt]);
+        var url = setting.target+'/'+forumList[forum_cnt]+'/posts?popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
+
+        console.log("Waiting 60 secs...");
+        setTimeout(function(){
+            console.log("==Restart==")
+            dcardBot.crawler(forum_cnt,setting,url,latestTime,start);
+        },60*1000);
+    }
+    else{
+        var latestTime = latestDate.get(forumList[forum_cnt]);
+        var url = setting.target+'/'+forumList[forum_cnt]+'/posts?popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
+        dcardBot.crawler(forum_cnt,setting,url,latestTime,start);
+    }
 }
 exports.restart=start;
 
