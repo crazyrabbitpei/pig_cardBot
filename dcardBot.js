@@ -34,8 +34,15 @@ var tag = setInterval(function(){
 function crawler(forum_cnt,setting,url,latestTime)
 {
     var base_url = setting.target;
+
+    if(forum_cnt==0){
+        newtime  = run.newtime;
+    }
     test_cnt++;
-    newtime  = run.newtime;
+    var forumName = url.match(/forums\/(.*)\/post/);
+    if(typeof newtime.get(forumName[1])!=="undefined"){
+        latestTime = newtime.get(forumName[1]);
+    }
     /*
     if(test_cnt==3){
         console.log("--end--");
@@ -91,7 +98,6 @@ function crawler(forum_cnt,setting,url,latestTime)
                         }
                         else{
                             console.log('['+url+'] retry crawler:'+code);
-                            test_cnt--;
                             setTimeout(function(){
                                 crawler(forum_cnt,setting,url,latestTime);
                             },setting.againTime*1000);
@@ -155,6 +161,7 @@ function fetchPostId(forum_cnt,setting,info,getContentbyId,getCommentbyId,next_u
     var latest_time,current_time;
     current_links_content = len;
     current_links_comment = len;
+    /*
     if(len==0){
         if(current_links_content==0&&current_links_comment==0){
             next_forum=1;
@@ -162,6 +169,7 @@ function fetchPostId(forum_cnt,setting,info,getContentbyId,getCommentbyId,next_u
         }
         return;
     }
+    */
     for(i=0;i<len;i++){
         if(latestTime!=0){
             current_time = new Date(info[i].createdAt);
@@ -171,8 +179,9 @@ function fetchPostId(forum_cnt,setting,info,getContentbyId,getCommentbyId,next_u
                 current_links_content = current_links_content-(len-i);
                 current_links_comment = current_links_comment-(len-i);
                 console.log(current_time+"--reach end--"+latest_time);
-                if(current_links_content==0&&current_links_comment==0){
-                    next_forum=1;
+                //if(current_links_content==0&&current_links_comment==0){
+                next_forum=1;
+                if(i==0){
                     crawler(forum_cnt,setting,next_url,latestTime);
                 }
                 break;
