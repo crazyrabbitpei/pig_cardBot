@@ -52,7 +52,7 @@ function crawler(forum_cnt,setting,url,latestTime)
 
     if(next_forum==1){
         next_forum=0;
-        console.log("===Next Forum==");
+        console.log("===0.Next Forum==");
         retry_cnt=0;
         forum_cnt++;
         run.restart(setting,forum_cnt);
@@ -71,7 +71,7 @@ function crawler(forum_cnt,setting,url,latestTime)
             if(!err&&rep.statusCode==200){
                 var info = JSON.parse(body);
                 if(typeof info==="undefined"||info.length==0){
-                    console.log("===Next Forum==");
+                    console.log("===1.Next Forum==");
                     retry_cnt=0;
                     forum_cnt++;
                     run.restart(setting,forum_cnt);
@@ -105,7 +105,7 @@ function crawler(forum_cnt,setting,url,latestTime)
                     }
                     else if(code==404){
                         console.log('[404]');
-                        var msg = 'Can\'t find the website.';
+                        var msg = '['+url+'] Can\'t find the forum.';
                         writeLog(setting,msg,'404');
                     }
                     else{
@@ -178,7 +178,7 @@ function fetchPostId(forum_cnt,setting,info,getContentbyId,getCommentbyId,next_u
             if(current_time.getTime()<=latest_time.getTime()){
                 current_links_content = current_links_content-(len-i);
                 current_links_comment = current_links_comment-(len-i);
-                console.log(current_time+"--reach end--"+latest_time);
+                console.log(current_time+"--["+forum_cnt+"]reach end--"+latest_time);
                 //if(current_links_content==0&&current_links_comment==0){
                 next_forum=1;
                 if(i==0){
@@ -230,7 +230,7 @@ function fetchPostContent(forum_cnt,setting,post_id,totalp,next_url,latestTime)
             var content = JSON.parse(body);
             //console.log('['+post_id+']title:'+content.title);
             convert2gais(setting,post_id,content,'content');
-            console.log("current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
+            console.log("["+forum_cnt+"] current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
             if(current_links_content==0&&current_links_comment==0){
                 crawler(forum_cnt,setting,next_url,latestTime);
                 //console.log('next range...:'+next_url);
@@ -259,7 +259,7 @@ function fetchPostContent(forum_cnt,setting,post_id,totalp,next_url,latestTime)
                     var msg = 'Can\'t find the post_id:'+post_id;
                     writeLog(setting,msg,'404');
                     
-                    console.log("current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
+                    console.log("["+forum_cnt+"] current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
                     if(current_links_content==0&&current_links_comment==0){
                         crawler(forum_cnt,setting,next_url,latestTime);
                         //console.log('next range...:'+next_url);
@@ -324,7 +324,7 @@ function fetchPostComment(forum_cnt,setting,post_id,totalp,next_url,latestTime,c
                 convert2gais(setting,post_id,content[i],'comment');
             }
 
-            console.log("0.current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
+            console.log("0.["+forum_cnt+"] current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
             console.log("content.length:"+content.length+" comment_len:"+comment_len);
             if(content.length==0||comment_len<0){
                 current_links_comment--;
@@ -366,7 +366,7 @@ function fetchPostComment(forum_cnt,setting,post_id,totalp,next_url,latestTime,c
                     var msg = 'Can\'t find the post_id:'+post_id;
                     writeLog(setting,msg,'404');
                     
-                    console.log("1.current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
+                    console.log("1.["+forum_cnt+"] current_links_content:"+current_links_content+" current_links_comment:"+current_links_comment);
                     if(current_links_content==0&&current_links_comment==0){
                         //console.log('next range...:'+next_url);
                         crawler(forum_cnt,setting,next_url,latestTime);

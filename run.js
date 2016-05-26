@@ -94,28 +94,27 @@ function start(setting,forum_cnt)
 
     if(typeof forumList[forum_cnt]==="undefined"){
         console.log("--All forums done--");
+        forumList = [];
         console.log("Waiting 60 secs...");
         setTimeout(function(){
             console.log("==Restart==");
-            readConfig(config_name,start);
-            /*
+            //readConfig(config_name,start);
             readForums(setting.catagory_list,()=>{
                 readDate(setting.forums_manage,()=>{
                     exports.newtime = newtime;
                     forum_cnt=0;
                     var latestTime = latestDate.get(forumList[forum_cnt]);
                     var url = setting.target+'/'+forumList[forum_cnt]+'/posts?popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
-                    dcardBot.crawler(forum_cnt,setting,url,latestTime,start);
+                    dcardBot.crawler(0,setting,url,latestTime);
                 });
             });
-            */
         },60*1000);
 
     }
     else{
         var latestTime = latestDate.get(forumList[forum_cnt]);
         var url = setting.target+'/'+forumList[forum_cnt]+'/posts?popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
-        dcardBot.crawler(forum_cnt,setting,url,latestTime,start);
+        dcardBot.crawler(forum_cnt,setting,url,latestTime);
     }
 }
 exports.restart=start;
