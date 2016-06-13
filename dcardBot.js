@@ -69,22 +69,38 @@ function crawler(forum_cnt,setting,url,latestTime)
             timeout:60*1000
         },function(err,rep,body){
             if(!err&&rep.statusCode==200){
-                var info = JSON.parse(body);
-                if(typeof info==="undefined"||info.length==0){
-                    console.log("===1.Next Forum==");
-                    retry_cnt=0;
-                    forum_cnt++;
-                    run.restart(setting,forum_cnt);
+                var error_tag=0;
+                var error_msg="";
+                try{
+                    var info = JSON.parse(body);
                 }
-                else{
-                    var len = info.length;
-                    var next_id = info[len-1].id;
-                    var forum_name = url.match(/forums\/(.*)\/post/);
-                    var next_url = base_url+'/'+forum_name[1]+'/posts?before='+next_id+'&popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
-                    //console.log('next:'+next_url);
-                    updateTime(setting,info[0].createdAt,latestTime,forum_name[1]);
-                    fetchPostId(forum_cnt,setting,info,fetchPostContent,fetchPostComment,next_url,latestTime);
+                catch(e){
+                    error_tag=1;
+                    error_msg=JSON.stringify(e);
                 }
+                finally{
+                    if(error_tag==1){
+                        writeLog(setting,error_msg,'Json parse error');
+                        return;
+                    }
+                    if(typeof info==="undefined"||info.length==0){
+                        console.log("===1.Next Forum==");
+                        retry_cnt=0;
+                        forum_cnt++;
+                        run.restart(setting,forum_cnt);
+                    }
+                    else{
+                        var len = info.length;
+                        var next_id = info[len-1].id;
+                        var forum_name = url.match(/forums\/(.*)\/post/);
+                        var next_url = base_url+'/'+forum_name[1]+'/posts?before='+next_id+'&popular='+setting.fetch_popular+'&limit='+setting.perContent_limit;
+                        //console.log('next:'+next_url);
+                        updateTime(setting,info[0].createdAt,latestTime,forum_name[1]);
+                        fetchPostId(forum_cnt,setting,info,fetchPostContent,fetchPostComment,next_url,latestTime);
+                    }
+
+                }
+
             }
             else{
                 if(rep){
@@ -449,6 +465,7 @@ function convert2gais(setting,post_id,data,type)
     //type:content,comment
     var date = new Date();
     var date_name = dateFormat(date,"yyyymmdd");
+    var create_date = dateFormat(data.createdAt,"ddd mmm d HH:MM:ss yyyy");
     if(type=="content"){
         var recFilename = setting.recFile+date_name+'.content'
         var rec="@GaisRec"+
@@ -456,7 +473,7 @@ function convert2gais(setting,post_id,data,type)
                 "\n@title:"+data.title+
                 "\n@content:"+data.content+
                 "\n@excerpt:"+data.excerpt+
-                "\n@createdAt:"+data.createdAt+
+                "\n@createdAt:"+create_date+
                 "\n@commentCount:"+data.commentCount+
                 "\n@likeCount:"+data.likeCount+
                 "\n@tags:"+data.tags+
@@ -464,13 +481,14 @@ function convert2gais(setting,post_id,data,type)
                 "\n@forumAlias:"+data.forumAlias+
                 "\n@gender:"+data.gender+
                 "\n@school:"+data.school+"\n";
+                //TODO:week,month,date;
     }
     else if(type=="comment"){
         var recFilename = setting.recFile+date_name+'.comment'
         var rec="@GaisRec"+
                 "\n@post_id:"+data.postId+
                 "\n@id:"+data.id+
-                "\n@createdAt:"+data.createdAt+
+                "\n@createdAt:"+create_date+
                 "\n@content:"+data.content+
                 "\n@likeCount:"+data.likeCount+
                 "\n@gender:"+data.gender+
